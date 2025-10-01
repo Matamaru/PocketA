@@ -75,8 +75,7 @@ class UI_Dashboard(Interface):
                    choices = [
                        'To-Do-List',
                        'Weekplan',
-                       'Monthplan',
-                       'Yearplan',
+                       '90-day-plan',
                        '5-yearplpan',
                        'Calendar',
                        'Projectmanagement',
@@ -93,10 +92,8 @@ class UI_Dashboard(Interface):
               self.ui_todolist()
         elif a['planning'] == 'Weekplan':
               self.ui_weekplan()
-        elif a['planning'] == 'Monthplan':
-              self.ui_monthplan()
-        elif a['planning'] == 'Yearplan':
-              self.ui_yearplan()
+        elif a['planning'] == '90-day-plan':
+              self.ui_90dayplan()
         elif a['planning'] == '5-yearplan':
               self.ui_fiveyearplan()
         elif a['planning'] == 'Calendar':
@@ -115,10 +112,7 @@ class UI_Dashboard(Interface):
     def ui_weekplan(self):
         pass
 
-    def ui_monthplan(self):
-        pass
-
-    def ui_yearplan(self):
+    def ui_90dayplan(self):
         pass
 
     def ui_fiveyearplan(self):
@@ -225,11 +219,26 @@ class UI_Dashboard(Interface):
         print('')
 
         q = [
-            ]
+                inquirer.List(
+                    'network',
+                    message = 'Choose task',
+                    choices = [
+                        'ip',
+                        'Back to dashboard',
+                        'Exit PocketA'
+                        ]
+                    )
+                ]
 
-        if a['network'] == '':
-              pass
+        a = inquirer.prompt(q)
+        print(a['network'])
+
+        if a['network'] == 'ip':
+            self.ip()
         elif a['network'] == 'Back to dashboard':
               self.dashboard()
         elif a['network'] == 'Exit PocketA':
               self._exit()
+
+    def ip(self):
+        pass
