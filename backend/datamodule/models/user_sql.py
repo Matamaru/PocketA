@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS _users (
 	email VARCHAR(255) UNIQUE NOT NULL,
 	salt VARCHAR(255) NOT NULL,
 	pepper VARCHAR(255) NOT NULL,
-	id VARCHAR(255) PRIMARY KEY NOT NULL
+	user_id VARCHAR(255) PRIMARY KEY NOT NULL
 	)
 """
 
@@ -32,7 +32,7 @@ INSERT INTO _users (
 	email,
 	salt,
 	pepper,
-	id)
+	user_id)
 VALUES (
 	%s,
 	%s,
@@ -47,7 +47,7 @@ VALUES (
 UPDATE_USER = """
 UPDATE _users 
 SET username = %s, password = %s, email = %s, salt = %s, pepper = %s
-WHERE id = %s
+WHERE user_id = %s
 RETURNING *
 """
 
