@@ -10,7 +10,7 @@ from frontend.cli.interface_entrance import UI_Entrance
 from frontend.cli.interface_dashboard import UI_Dashboard
 from backend.datamodule.config import config_db
 from backend.datamodule.datamodule import DataBase
-from backend.api.config import config_api
+from backend.api.app import create_app
 
 #=== classes and defs
 
@@ -25,9 +25,9 @@ def main():
 	db.check_conn()
 	db.close_conn()
 
-	# get api_params from ENV
-	api_params = config_api()
-	print(api_params)
+	# start app
+	app = create_app()
+	app.run(host='0.0.0.0')
 
 
 #    # create ui instances

@@ -9,6 +9,9 @@
 import string
 import random
 import re
+import hashlib
+import os
+import base64
 
 #=== defs and classes
 
@@ -29,44 +32,6 @@ class Creds:
 	# list symbols 
 	l_symbols = list(string.punctuation)
 	
-	# list_types
-	l_types = ['alpha','cap_alpha','digit','symbol']
-
-	
-	def type_in_password(self, password: str, type:['alpha', 'cap_alpha', 'digit', 'symbol']) -> bool:
-		"""
-		Checks, if password contains uncapitalized character.
-		:param password: str
-		:param type: str ["alpha","cap_alpha","digit","symbol")
-		:return :boolean
-		"""
-		if type == "alpha":
-			_list = self.l_alpha
-		elif type == "cap_alpha":
-			_list = self.l_cap_alpha
-		elif type == "digit":
-			_list = self.l_digits
-		elif type == "symbol":
-			_list = self.l_symbols
-
-		for char in password:
-			for item in _list:
-				if item == char:
-					return True
-		return False
-	
-	def length_of_password(self, password: str, min_length: int = 12) -> bool:
-		"""
-		Checks the length of the password.
-		A secure password needs at least 12 characters.
-		:param password: str
-		:param min_lengths: int = 12
-		:return bool
-		"""
-		if len(password) > 11:
-			return True
-		return False
-	
 	
 	def check_valid_password(self,
 						  password: str,
@@ -83,39 +48,44 @@ class Creds:
 		:param min_length: int = 12
 		:return : d_result[b_valid, l_msg: list]: dict
 		"""
-		d_result = {'b_valid': False, 'l_msg': []}
 		l_msg = []
-		b_valid = True
-		b_check = False
 
-		if password:
-			if not self.type_in_password(password, 'alpha'):
-				l_msg.append('Error: No uncapitalized character in password!')
-				b_valid = False
-			if not self.type_in_password(password, 'cap_alpha'):
-				l_msg.append('Error: No capitalized character in password!')
-				b_valid = False
-			if not self.type_in_password(password, 'digit'):
-				l_msg.append('Error: No digit character in password!')
-				b_valid = False
-			if not self.type_in_password(password, 'symbol'):
-				l_msg.append('Error: No symbol character in password!')
-				b_valid = False
-			if not self.length_of_password(password, min_length):
-				l_msg.append(f'Error: Password must have at least {min_length} characters!')
-				b_valid = False
-		else: # if not password
-			b_valid = False
-			l_msg.append('Error: No password!')
+		# Check for empty password	
+		if not password:
+			return {'b_valid': False, 'l_msg': ['Error: No password!']}
 
-		if b_valid == False:
-			b_check = False
-		else:
-			b_check = True
+		# Escape all punctuation for safe use in regex
+		sym_class = re.escape(''.join(self.l_symbols))
 
-		d_result.update({'b_valid': b_check, 'l_msg': l_msg})
+		#********************************************
+		# Regex pattern explanation
+		#
+		# ^						Start of string
+		# (?=.*[a-z]			Lookahead: at least one lowercase letter
+		# (?=.*[A-Z]			Lookahead: at least one uppercase letter
+		# (?=.*\d)				Lookahead: at least one digit
+		# (?=.*[<symbols>])		Lookahead: at least one symbol from string.punctuations
+		# [^\s}{min_length,}	Actual allowed characters (no whitespace, min_length or more)
+		# $ 					End of string	
+		#********************************************
 
-		return d_result
+		full_pattern = rf'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[{sym_class}])[^\s]{{{min_length},}}$'
+
+
+		if len(password) < min_length:
+			l_msg.append(f'Error: Password must have at least {min_length} characters!')
+		if not re.search(r'[a-z]', password):
+			l_msg.append('Error: No uncapitalized character in password!')
+		if not re.search(r'[A-Z]', password):
+			l_msg.append('Error: No capitalized character in password!')
+		if not re.search(r'\d', password):
+			l_msg.append('Error: No digit character in password!')
+		if not re.search(rf'[{sym_class}]', password):
+			l_msg.append('Error: No symbol character in password!')
+		if not re.search(r'\s', password):
+			l_msg.append(f'Error: Password must not contain whitespace!')
+
+		return {'b_valid': False, 'l_msg': l_msg}
 
 
 	def create_secure_password(self, length: int = 25) -> str:
@@ -209,8 +179,55 @@ class Creds:
 	
 
 
+	def make_salt(self, length: int = 16) -> str:
+		"""
+		Creates salt for password hash.
+		:param length: int = 16
+		:return : str
+		"""
+		salt = os.urandom(length)
+		return base64.b64encode(salt).decode('utf-8') 
+
+
+	def generate_hashed_password(self,
+							  password: str,
+							  my_salt: str) -> str:
+		"""
+		Generates a SHA-256 hash of the	password combined with the salt.
+		:param password: str
+		:param mysalt: str
+		:return hashed_password: str
+		"""
+		salted_password = (salt + password).encode('utf-8')
+		hashed_password = hashlib.sha256(salted_password).hexdigest() 
+		return hashed_password
+
+
+	def check_hashed_password(self, 
+						   login_password: str, 
+						   db_password: str, 
+						   db_salt: str) -> bool:
+		"""
+		Verifies if the provided password matches the stored hash.
+		:param login_password: str
+		:db_password: str
+		:db_salt: str
+		:return : bool
+		"""
+		hashed_login_password = self.generate_hashed_password(password, db_salt) 
+		return hashed_login_password == db_password
+
 #=== main
+
 
 if __name__ == '__main__':
 	creds = Creds()
-	print(creds.check_valid_email('emailhost.com'))
+	password = 'maschineK!0815@4711'
+	salt = creds.make_salt()
+	hashed_password = creds.generate_hashed_password(password, salt)
+	checked_password = creds.check_hashed_password(password, hashed_password, salt)
+	
+	print(f'Password: {password}')
+	print(f'Salt: {salt}')
+	print(f'Hashed password: {hashed_password}')
+	print(f'Checked: {checked_password}')

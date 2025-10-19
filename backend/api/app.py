@@ -12,9 +12,28 @@ from backend.api.config import config_api
 
 #=== defs and classes
 
-def main():
+
+def create_app():
+	# get api_params from ENV
+	api_params = config_api()
+
+	# create and configure the app
 	app = Flask('__name__')
+	app.config.from_mapping(
+			SECRET_KEY=api_params['secret_key'],
+			DEBUG=api_params['debug']
+			)
+
+	@app.route('/')
+	def home():
+		return 'Home'
+
+	return app
+	
+
 
 
 #=== main
 
+if __name__ == "__main__":
+	main()
